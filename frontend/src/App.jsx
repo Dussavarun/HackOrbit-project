@@ -28,7 +28,7 @@ const App = () => {
   return (
     <Router>
       <div className="min-h-screen bg-gray-50">
-        <Header user={user} onProfileClick={() => setShowProfile(true)} />
+        <Header onProfileClick={() => setShowProfile(true)} />
         <main className="pt-24 px-4">
           <Routes>
             <Route path="/" element={<Navigate to="/roadmaps" replace />} />

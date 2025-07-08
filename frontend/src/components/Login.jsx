@@ -3,12 +3,14 @@ import { Link, useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
+import useAuthStore from "../../store/userAuthstore";
 
 const Login = () => {
   const [input, setInput] = useState({
     email: "",
     password: "",
   });
+  const { setUser } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -26,8 +28,13 @@ const Login = () => {
         { withCredentials: true }
       );
       toast.success(res.data.message || "Login successful!");
+      setUser(res.data.user);
       setLoading(false);
-      setTimeout(() => navigate("/"), 1200);
+      setTimeout(() => {
+        if (res.status == 200) {
+          navigate("/");
+        }
+      }, 500);
     } catch (err) {
       toast.error(
         err.response?.data?.message || "Login failed. Please try again."
