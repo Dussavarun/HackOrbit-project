@@ -33,7 +33,10 @@ const CareerRoadmaps= () => {
               <h2 className="text-xl font-semibold text-gray-900 mb-2">Choose Your Path</h2>
               <p className="text-gray-600 text-sm">Select a career roadmap to get started</p>
             </div>
-            <div className="p-6 space-y-4">
+            <div
+              className="p-6 space-y-4"
+              style={{ maxHeight: "550px", overflowY: "auto" }}
+            >
               {careerRoadmaps.map((roadmap, index) => (
                 <button
                   key={index}
