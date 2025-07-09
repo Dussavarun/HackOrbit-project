@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Github,
   Star,
@@ -9,7 +9,13 @@ import {
   CheckCircle,
   Search,
 } from "lucide-react";
-import { mockGitHubAnalysis } from "../data/mockData";
+import {
+  fetchGitHubProfile,
+  analyzeGitHubUser,
+  fetchGitHubRepos,
+  fetchRepoLanguages,
+  buildCompactProfileSummary,
+} from "../../../backend/controllers/githubController";
 
 const GitHubAnalysis = () => {
   const [username, setUsername] = useState("");
@@ -17,18 +23,56 @@ const GitHubAnalysis = () => {
   const [loading, setLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState("Web Developer");
 
+  useEffect(() => {
+    const storedUsername = localStorage.getItem("github_username");
+    const storedRole = localStorage.getItem("target_role");
+
+    if (storedUsername) setUsername(storedUsername);
+    if (storedRole) setSelectedRole(storedRole);
+  }, []);
+
   const handleAnalyze = async () => {
     if (!username.trim()) return;
+  const ressss =  await buildCompactProfileSummary(username)
+    console.log(ressss)
+
+    localStorage.setItem("github_username", username);
+    localStorage.setItem("target_role", selectedRole);
 
     setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
+    const result = await analyzeGitHubUser(username);
+    if (result) {
+      const reposWithLanguages = await Promise.all(
+        result.recentRepos.map(async (repo) => {
+          const languages = await fetchRepoLanguages(username, repo.name);
+          return {
+            name: repo.name,
+            description: repo.description || "No description provided",
+            stars: repo.stargazers_count,
+            forks: repo.forks_count,
+            lastUpdated: new Date(repo.updated_at).toLocaleDateString(),
+            languages: Object.keys(languages),
+            relevanceScore: Math.random(), // Placeholder, you can compute based on role later
+          };
+        })
+      );
+
+      const recommendations = [
+        "Contribute to more starred repos",
+        "Add detailed READMEs and documentation",
+        "Focus on trending tech stacks",
+      ];
+
       setAnalysis({
-        ...mockGitHubAnalysis,
-        username: username,
+        username,
+        overallAlignment: Math.random(), // Placeholder, later match with selectedRole
+        totalRepos: result.publicRepos,
+        topLanguages: result.topLanguages,
+        repositories: reposWithLanguages,
+        recommendations,
       });
-      setLoading(false);
-    }, 2000);
+    }
+    setLoading(false);
   };
 
   const getAlignmentColor = (score) => {
@@ -43,8 +87,9 @@ const GitHubAnalysis = () => {
     return "Needs Improvement";
   };
 
+
   return (
-    <div className="max-w-7xl  px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
           GitHub Profile Analysis
@@ -54,7 +99,6 @@ const GitHubAnalysis = () => {
         </p>
       </div>
 
-      {/* Analysis Form */}
       <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 mb-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
@@ -106,10 +150,8 @@ const GitHubAnalysis = () => {
         </div>
       </div>
 
-      {/* Analysis Results */}
       {analysis && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Overview */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
               <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-purple-50">
@@ -125,9 +167,7 @@ const GitHubAnalysis = () => {
                   </div>
                 </div>
               </div>
-
               <div className="p-6 space-y-6">
-                {/* Overall Alignment */}
                 <div className="text-center">
                   <div className="text-4xl font-bold text-blue-600 mb-2">
                     {Math.round(analysis.overallAlignment * 100)}%
@@ -148,8 +188,6 @@ const GitHubAnalysis = () => {
                     Alignment with {selectedRole}
                   </p>
                 </div>
-
-                {/* Stats */}
                 <div className="grid grid-cols-1 gap-4">
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <div className="text-2xl font-bold text-gray-900">
@@ -160,8 +198,6 @@ const GitHubAnalysis = () => {
                     </div>
                   </div>
                 </div>
-
-                {/* Top Languages */}
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-3">
                     Top Languages
@@ -181,7 +217,6 @@ const GitHubAnalysis = () => {
             </div>
           </div>
 
-          {/* Repositories */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-xl shadow-lg border border-gray-200">
               <div className="p-6 border-b border-gray-200">
@@ -217,7 +252,6 @@ const GitHubAnalysis = () => {
                           {Math.round(repo.relevanceScore * 100)}%
                         </div>
                       </div>
-
                       <div className="flex items-center space-x-4 text-sm text-gray-600 mb-3">
                         <div className="flex items-center space-x-1">
                           <Star className="w-4 h-4" />
@@ -232,7 +266,6 @@ const GitHubAnalysis = () => {
                           <span>{repo.lastUpdated}</span>
                         </div>
                       </div>
-
                       <div className="flex flex-wrap gap-2">
                         {repo.languages.map((language, langIndex) => (
                           <span
@@ -249,7 +282,6 @@ const GitHubAnalysis = () => {
               </div>
             </div>
 
-            {/* Recommendations */}
             <div className="bg-white rounded-xl shadow-lg border border-gray-200 mt-6">
               <div className="p-6 border-b border-gray-200">
                 <h2 className="text-xl font-semibold text-gray-900 flex items-center">
@@ -276,7 +308,6 @@ const GitHubAnalysis = () => {
         </div>
       )}
 
-      {/* Empty State */}
       {!analysis && (
         <div className="text-center py-12">
           <Github className="w-16 h-16 text-gray-400 mx-auto mb-4" />
@@ -292,4 +323,4 @@ const GitHubAnalysis = () => {
   );
 };
 
-export default GitHubAnalysis;
+export default GitHubAnalysis;
